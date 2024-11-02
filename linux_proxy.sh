@@ -57,6 +57,26 @@ set_proxy() {
     echo "http_proxy set to: $http_proxy"
     echo "https_proxy set to: $https_proxy"
 
+    # 配置 GitHub SSH 代理
+    local ssh_config_file="$HOME/.ssh/config"
+    if [ ! -f "$ssh_config_file" ]; then
+        touch "$ssh_config_file"
+    fi
+
+    # 检查是否有针对 github.com 的配置
+    if grep -q "Host github.com" "$ssh_config_file"; then
+        # 检查是否已有代理设置
+        if ! grep -q "ProxyCommand" "$ssh_config_file"; then
+            echo "Adding SSH proxy configuration for GitHub."
+            echo -e "Host github.com\n\tProxyCommand nc -X 5 -x $proxy_host:$proxy_port %h %p\n" >> "$ssh_config_file"
+        else
+            echo "SSH proxy configuration for GitHub already exists."
+        fi
+    else
+        echo "Adding new SSH configuration for GitHub."
+        echo -e "Host github.com\n\tProxyCommand nc -X 5 -x $proxy_host:$proxy_port %h %p\n" >> "$ssh_config_file"
+    fi
+
     # 检查 Docker 代理配置目录
     if $docker_installed; then
         local docker_proxy_dir="/etc/systemd/system/docker.service.d"
